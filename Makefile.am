@@ -389,4 +389,27 @@ BOOTCHECK_TIMEOUT=180
 
 bootcheck: $(BOOTCHECKS)
 
+windowsdir=$(top_builddir)/$(PACKAGE)-$(VERSION)-for-windows
+windowsdir: $(PROGRAMS) $(starfield_DATA) $(platform_DATA)
+	test -d $(windowsdir) && rm -rf $(windowsdir) || true
+	test -d $(windowsdir) || mkdir $(windowsdir)
+	$(MAKE) -C po $(AM_MAKEFLAGS) windowsdir
+	$(MAKE) -C grub-core $(AM_MAKEFLAGS) windowsdir
+	test -d $(windowsdir)/themes || mkdir $(windowsdir)/themes
+	test -d $(windowsdir)/themes/starfield || mkdir $(windowsdir)/themes/starfield
+	for x in $(PROGRAMS); do \
+		$(STRIP) $$x -o $(windowsdir)/$$x; \
+	done
+	for x in $(pkgdata_DATA); do \
+		cp -fp $$x $(windowsdir)/$$x; \
+	done
+	for x in $(starfield_DATA); do \
+		cp -fp $$x $(windowsdir)/themes/starfield/$$(basename $$x); \
+	done
+
+windowszip=$(top_builddir)/$(PACKAGE)-$(VERSION)-for-windows.zip
+windowszip: windowsdir
+	test -f $(windowszip) && rm $(windowszip) || true
+	zip -r $(windowszip) $(windowsdir)
+
 EXTRA_DIST += linguas.sh
