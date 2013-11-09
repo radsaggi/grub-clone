@@ -76,7 +76,7 @@ case "${grub_modinfo_target_cpu}-${grub_modinfo_platform}" in
 	trim=1
 	;;
     powerpc-ieee1275)
-	boot=cd
+	boot=hd
 	qemu=qemu-system-ppc
 	console=console
 	serial_port=escc-ch-a
@@ -346,6 +346,7 @@ if test -z "$debug"; then
 fi
 
 if [ x$boot != xnet ] && [ x$boot != xemu ]; then
+    cp -R "@srcdir@/themes" "@builddir@"
     pkgdatadir="@builddir@" sh "@builddir@/grub-mkrescue" "--grub-mkimage=${builddir}/grub-mkimage" "--grub-render-label=${builddir}/grub-render-label" "--output=${isofile}" "--override-directory=${builddir}/grub-core" \
 	--rom-directory="${rom_directory}" "--grub-mkimage-extra=$mkimage_extra_arg" ${mkrescue_args} \
 	"/boot/grub/grub.cfg=${cfgfile}" "/boot/grub/testcase.cfg=${source}" \
