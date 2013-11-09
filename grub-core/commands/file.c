@@ -30,6 +30,8 @@
 #include <grub/xen_file.h>
 #include <grub/efi/pe32.h>
 #include <grub/i386/linux.h>
+#include <grub/xnu.h>
+#include <grub/machoload.h>
 
 GRUB_MOD_LICENSE ("GPLv3+");
 
@@ -60,6 +62,12 @@ static const struct grub_arg_option options[] =
      N_("Check if FILE is ARM EFI file"), 0, 0},
     {"is-hibernated-hiberfil", 0, 0,
      N_("Check if FILE is hiberfil.sys in hibernated state"), 0, 0},
+    {"is-x86_64-xnu", 0, 0,
+     N_("Check if FILE is x86_64 xnu (Mac OS X kernel)"), 0, 0 },
+    {"is-i386-xnu", 0, 0,
+     N_("Check if FILE is i386 xnu (Mac OS X kernel)"), 0, 0 },
+    {"is-xnu-hibr", 0, 0,
+     N_("Check if FILE is xnu (Mac OS X kernel) hibernated image"), 0, 0 },
     {0, 0, 0, 0, 0, 0}
   };
 
@@ -77,8 +85,11 @@ enum
     IS_IA_EFI,
     IS_ARM_EFI,
     IS_HIBERNATED,
+    IS_XNU64,
+    IS_XNU32,
+    IS_XNU_HIBR,
     OPT_TYPE_MIN = IS_PAE_DOMU,
-    OPT_TYPE_MAX = IS_HIBERNATED
+    OPT_TYPE_MAX = IS_XNU32
   };
 
 
@@ -92,6 +103,8 @@ grub_cmd_file (grub_extcmd_context_t ctxt,
   grub_err_t err;
   int type = -1, i;
   int ret = 0;
+  grub_macho_t macho = 0;
+
   if (argc == 0)
     return grub_error (GRUB_ERR_BAD_ARGUMENT, N_("filename expected"));
   for (i = OPT_TYPE_MIN; i <= OPT_TYPE_MAX; i++)
@@ -231,6 +244,27 @@ grub_cmd_file (grub_extcmd_context_t ctxt,
 	  ret = 1;
 	break;
       }
+    case IS_XNU64:
+    case IS_XNU32:
+      {
+	macho = grub_macho_open (args[0], (type == IS_XNU64));
+	if (! macho)
+	  break;
+	/* FIXME: more checks?  */
+	ret = 1;
+	break;
+      }
+    case IS_XNU_HIBR:
+      {
+	struct grub_xnu_hibernate_header hibhead;
+	if (grub_file_read (file, &hibhead, sizeof (hibhead))
+	    != sizeof (hibhead))
+	  break;
+	if (hibhead.magic != grub_cpu_to_le32_compile_time (GRUB_XNU_HIBERNATE_MAGIC))
+	  break;
+	ret = 1;
+	break;
+      }
     case IS_32_EFI:
     case IS_64_EFI:
     case IS_IA_EFI:
@@ -303,6 +337,8 @@ grub_cmd_file (grub_extcmd_context_t ctxt,
 
   if (elf)
     grub_elf_close (elf);
+  else if (macho)
+    grub_macho_close (macho);
   else if (file)
     grub_file_close (file);
 

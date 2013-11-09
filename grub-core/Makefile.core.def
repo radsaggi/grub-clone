@@ -1659,14 +1659,19 @@ module = {
   name = xnu;
   x86 = loader/xnu_resume.c;
   x86 = loader/i386/xnu.c;
-  x86 = loader/macho32.c;
-  x86 = loader/macho64.c;
-  x86 = loader/macho.c;
   x86 = loader/xnu.c;
-  x86 = loader/lzss.c;
 
-  extra_dist = loader/machoXX.c;
   enable = x86;
+};
+
+module = {
+  name = macho;
+
+  common = loader/macho.c;
+  common = loader/macho32.c;
+  common = loader/macho64.c;
+  common = loader/lzss.c;
+  extra_dist = loader/machoXX.c;
 };
 
 module = {
