@@ -1642,10 +1642,6 @@ module = {
   name = linux;
   x86 = loader/i386/linux.c;
   xen = loader/i386/xen.c;
-  xen = loader/i386/xen_file.c;
-  xen = loader/i386/xen_file32.c;
-  xen = loader/i386/xen_file64.c;
-  extra_dist = loader/i386/xen_fileXX.c;
   xen_cppflags	   = '$(CPPFLAGS_XEN)';
   i386_pc = lib/i386/pc/vesa_modes_table.c;
   mips = loader/mips/linux.c;
@@ -2218,4 +2214,13 @@ module = {
 module = {
   name = progress;
   common = lib/progress.c;
+};
+
+module = {
+  name = file;
+  common = commands/file.c;
+  common = loader/i386/xen_file.c;
+  common = loader/i386/xen_file32.c;
+  common = loader/i386/xen_file64.c;
+  extra_dist = loader/i386/xen_fileXX.c;
 };

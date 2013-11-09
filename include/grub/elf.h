@@ -2450,7 +2450,7 @@ typedef Elf32_Addr Elf32_Conflict;
 
 #define R_X86_64_NUM		24
 
-#ifndef GRUB_UTIL
+#ifdef GRUB_TARGET_WORDSIZE
 #if GRUB_TARGET_WORDSIZE == 32
 
 typedef Elf32_Addr Elf_Addr;

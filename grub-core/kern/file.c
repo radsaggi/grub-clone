@@ -87,10 +87,10 @@ grub_file_open (const char *name)
   if (! file)
     goto fail;
 
+  file->device = device;
+
   file->name = grub_strdup (name);
   grub_errno = GRUB_ERR_NONE;
-
-  file->device = device;
 
   if (device->disk && file_name[0] != '/')
     /* This is a block list.  */
@@ -111,6 +111,11 @@ grub_file_open (const char *name)
       {
 	last_file = file;
 	file = grub_file_filters_enabled[filter] (file, name);
+	if (file)
+	  {
+	    file->name = grub_strdup (name);
+	    grub_errno = GRUB_ERR_NONE;
+	  }
       }
   if (!file)
     grub_file_close (last_file);

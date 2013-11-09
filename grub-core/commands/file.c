@@ -1,0 +1,315 @@
+/* cpuid.c - test for CPU features */
+/*
+ *  GRUB  --  GRand Unified Bootloader
+ *  Copyright (C) 2006, 2007, 2009  Free Software Foundation, Inc.
+ *  Based on gcc/gcc/config/i386/driver-i386.c
+ *
+ *  GRUB is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  GRUB is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with GRUB.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+#include <grub/dl.h>
+#include <grub/misc.h>
+#include <grub/mm.h>
+#include <grub/env.h>
+#include <grub/command.h>
+#include <grub/extcmd.h>
+#include <grub/i18n.h>
+#include <grub/file.h>
+#include <grub/elf.h>
+#include <grub/xen_file.h>
+#include <grub/efi/pe32.h>
+#include <grub/i386/linux.h>
+
+GRUB_MOD_LICENSE ("GPLv3+");
+
+static const struct grub_arg_option options[] =
+  {
+    {"is-xen-i386-pae-domu", 0, 0,
+     N_("Check if FILE can be booted as i386 PAE xen unprivilegied guest"),
+     0, 0},
+    {"is-xen-x86_64-domu", 0, 0,
+     N_("Check if FILE can be booted as x86_64 xen unprivilegied guest"), 0, 0},
+    {"is-xen-x86-dom0", 0, 0,
+     N_("Check if FILE can be used as xen x86 privilegied guest kernel"), 0, 0},
+    {"is-x86-multiboot", 0, 0,
+     N_("Check if FILE can be used as x86 multiboot kernel"), 0, 0},
+    {"is-x86-multiboot2", 0, 0,
+     N_("Check if FILE can be used as x86 multiboot2 kernel"), 0, 0},
+    {"is-x86-linux", 0, 0,
+     N_("Check if FILE is x86 linux"), 0, 0},
+    {"is-x86-linux32", 0, 0,
+     N_("Check if FILE is x86 linux supporting 32-bit protocol"), 0, 0},
+    {"is-i386-efi", 0, 0,
+     N_("Check if FILE is i386 EFI file"), 0, 0},
+    {"is-x86_64-efi", 0, 0,
+     N_("Check if FILE is x86-64 EFI file"), 0, 0},
+    {"is-ia64-efi", 0, 0,
+     N_("Check if FILE is IA64 EFI file"), 0, 0},
+    {"is-arm-efi", 0, 0,
+     N_("Check if FILE is ARM EFI file"), 0, 0},
+    {0, 0, 0, 0, 0, 0}
+  };
+
+enum
+  {
+    IS_PAE_DOMU,
+    IS_64_DOMU,
+    IS_DOM0,
+    IS_MULTIBOOT,
+    IS_MULTIBOOT2,
+    IS_X86_LINUX,
+    IS_X86_LINUX32,
+    IS_32_EFI,
+    IS_64_EFI,
+    IS_IA_EFI,
+    IS_ARM_EFI,
+    OPT_TYPE_MIN = IS_PAE_DOMU,
+    OPT_TYPE_MAX = IS_ARM_EFI
+  };
+
+
+static grub_err_t
+grub_cmd_file (grub_extcmd_context_t ctxt,
+		int argc,
+		char **args)
+{
+  grub_file_t file = 0;
+  grub_elf_t elf = 0;
+  grub_err_t err;
+  int type = -1, i;
+  int ret = 0;
+  if (argc == 0)
+    return grub_error (GRUB_ERR_BAD_ARGUMENT, N_("filename expected"));
+  for (i = OPT_TYPE_MIN; i <= OPT_TYPE_MAX; i++)
+    if (ctxt->state[i].set)
+      {
+	if (type == -1)
+	  {
+	    type = i;
+	    continue;
+	  }
+	return grub_error (GRUB_ERR_BAD_ARGUMENT, "multiple types specified");
+      }
+  if (type == -1)
+    return grub_error (GRUB_ERR_BAD_ARGUMENT, "no type specified");
+    
+  file = grub_file_open (args[0]);
+  if (!file)
+    return grub_errno;
+  switch (type)
+    {
+    case IS_PAE_DOMU ... IS_DOM0:
+      {
+	struct grub_xen_file_info xen_inf;
+	elf = grub_xen_file (file);
+	if (!elf)
+	  break;
+	err = grub_xen_get_info (elf, &xen_inf);
+	if (err)
+	  break;
+	/* Unfortuntely no way to check if kernel supports dom0.  */
+	if (type == IS_DOM0)
+	  ret = 1;
+	if (type == IS_PAE_DOMU)
+	  ret = (xen_inf.arch == GRUB_XEN_FILE_I386_PAE
+		 || xen_inf.arch == GRUB_XEN_FILE_I386_PAE_BIMODE);
+	if (type == IS_64_DOMU)
+	  ret = (xen_inf.arch == GRUB_XEN_FILE_X86_64);
+	break;
+      }
+    case IS_MULTIBOOT:
+    case IS_MULTIBOOT2:
+      {
+	grub_uint32_t *buffer;
+	grub_ssize_t len;
+	grub_size_t search_size;
+	grub_uint32_t *header;
+	grub_uint32_t magic;
+	grub_size_t step;
+
+	if (type == IS_MULTIBOOT2)
+	  {
+	    search_size = 32768;
+	    magic = grub_cpu_to_le32_compile_time (0xe85250d6);
+	    step = 2;
+	  }
+	else
+	  {
+	    search_size = 8192;
+	    magic = grub_cpu_to_le32_compile_time (0x1BADB002);
+	    step = 1;
+	  }
+
+	buffer = grub_malloc (search_size);
+	if (!buffer)
+	  break;
+
+	len = grub_file_read (file, buffer, search_size);
+	if (len < 32)
+	  {
+	    grub_free (buffer);
+	    break;
+	  }
+
+	/* Look for the multiboot header in the buffer.  The header should
+	   be at least 12 bytes and aligned on a 4-byte boundary.  */
+	for (header = buffer;
+	     ((char *) header <= (char *) buffer + len - (type == IS_MULTIBOOT2 ? 16 : 12))
+	       || (header = 0);
+	     header += step)
+	  {
+	    if (header[0] == magic
+		&& !(grub_le_to_cpu32 (header[0])
+		     + grub_le_to_cpu32 (header[1])
+		     + grub_le_to_cpu32 (header[2])
+		     + (type == IS_MULTIBOOT2
+			? grub_le_to_cpu32 (header[3]) : 0)))
+	      break;
+	  }
+
+	if (header != 0)
+	  ret = 1;
+	grub_free (buffer);
+	break;
+      }
+    case IS_X86_LINUX32:
+    case IS_X86_LINUX:
+      {
+	struct linux_kernel_header lh;
+	if (grub_file_read (file, &lh, sizeof (lh)) != sizeof (lh))
+	  break;
+	if (lh.boot_flag != grub_cpu_to_le16_compile_time (0xaa55))
+	  break;
+
+	if (lh.setup_sects > GRUB_LINUX_MAX_SETUP_SECTS)
+	  break;
+
+	/* FIXME: some really old kernels (< 1.3.73) will fail this.  */
+	if (lh.header != grub_cpu_to_le32_compile_time (GRUB_LINUX_MAGIC_SIGNATURE)
+	    || grub_le_to_cpu16 (lh.version) < 0x0200)
+	  break;
+
+	if (type == IS_X86_LINUX)
+	  {
+	    ret = 1;
+	    break;
+	  }
+
+	/* FIXME: 2.03 is not always good enough (Linux 2.4 can be 2.03 and
+	   still not support 32-bit boot.  */
+	if (lh.header != grub_cpu_to_le32_compile_time (GRUB_LINUX_MAGIC_SIGNATURE)
+	    || grub_le_to_cpu16 (lh.version) < 0x0203)
+	  break;
+
+	if (! (lh.loadflags & GRUB_LINUX_FLAG_BIG_KERNEL))
+	  break;
+	ret = 1;
+	break;
+      }
+    case IS_32_EFI:
+    case IS_64_EFI:
+    case IS_IA_EFI:
+    case IS_ARM_EFI:
+      {
+	char signature[4];
+	grub_uint32_t pe_offset;
+	struct grub_pe32_coff_header coff_head;
+
+	if (grub_file_read (file, signature, 2) != 2)
+	  break;
+	if (signature[0] != 'M' || signature[1] != 'Z')
+	  break;
+	if ((grub_ssize_t) grub_file_seek (file, 0x3c) == -1)
+	  break;
+	if (grub_file_read (file, &pe_offset, 4) != 4)
+	  break;
+	if ((grub_ssize_t) grub_file_seek (file, grub_le_to_cpu32 (pe_offset)) == -1)
+	  break;
+	if (grub_file_read (file, signature, 4) != 4)
+	  break;
+	if (signature[0] != 'P' || signature[1] != 'E'
+	    || signature[2] != '\0' || signature[3] != '\0')
+	  break;
+
+	if (grub_file_read (file, &coff_head, sizeof (coff_head))
+	    != sizeof (coff_head))
+	  break;
+	if (type == IS_32_EFI
+	    && coff_head.machine != grub_cpu_to_le16_compile_time (GRUB_PE32_MACHINE_I386))
+	  break;
+	if (type == IS_64_EFI
+	    && coff_head.machine != grub_cpu_to_le16_compile_time (GRUB_PE32_MACHINE_X86_64))
+	  break;
+	if (type == IS_IA_EFI
+	    && coff_head.machine != grub_cpu_to_le16_compile_time (GRUB_PE32_MACHINE_IA64))
+	  break;
+	if (type == IS_ARM_EFI
+	    && coff_head.machine != grub_cpu_to_le16_compile_time (GRUB_PE32_MACHINE_ARMTHUMB_MIXED))
+	  break;
+	if (type == IS_64_EFI || type == IS_64_EFI)
+	  {
+	    struct grub_pe64_optional_header o64;
+	    if (grub_file_read (file, &o64, sizeof (o64))
+		!= sizeof (o64))
+	      break;
+	    if (o64.magic != grub_cpu_to_le16_compile_time (GRUB_PE32_PE64_MAGIC))
+	      break;
+	    if (o64.subsystem != grub_cpu_to_le16_compile_time (GRUB_PE32_SUBSYSTEM_EFI_APPLICATION))
+	      break;
+	    ret = 1;
+	    break;
+	  }
+	if (type == IS_32_EFI || type == IS_ARM_EFI)
+	  {
+	    struct grub_pe32_optional_header o32;
+	    if (grub_file_read (file, &o32, sizeof (o32))
+		!= sizeof (o32))
+	      break;
+	    if (o32.magic != grub_cpu_to_le16_compile_time (GRUB_PE32_PE32_MAGIC))
+	      break;
+	    if (o32.subsystem != grub_cpu_to_le16_compile_time (GRUB_PE32_SUBSYSTEM_EFI_APPLICATION))
+	      break;
+	    ret = 1;
+	    break;
+	  }
+	break;
+      }
+    }
+
+  if (elf)
+    grub_elf_close (elf);
+  else if (file)
+    grub_file_close (file);
+
+  if (!ret && (grub_errno == GRUB_ERR_BAD_OS || grub_errno == GRUB_ERR_NONE))
+    /* TRANSLATORS: it's a standalone boolean value,
+       opposite of "true".  */
+    grub_error (GRUB_ERR_TEST_FAILURE, N_("false"));
+  return grub_errno;
+}
+
+static grub_extcmd_t cmd;
+
+GRUB_MOD_INIT(file)
+{
+  cmd = grub_register_extcmd ("file", grub_cmd_file, 0,
+			      "OPTIONS FILE",
+			      N_("Check if FILE is of specified type."),
+			      options);
+}
+
+GRUB_MOD_FINI(file)
+{
+  grub_unregister_extcmd (cmd);
+}
