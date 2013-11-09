@@ -58,6 +58,8 @@ static const struct grub_arg_option options[] =
      N_("Check if FILE is IA64 EFI file"), 0, 0},
     {"is-arm-efi", 0, 0,
      N_("Check if FILE is ARM EFI file"), 0, 0},
+    {"is-hibernated-hiberfil", 0, 0,
+     N_("Check if FILE is hiberfil.sys in hibernated state"), 0, 0},
     {0, 0, 0, 0, 0, 0}
   };
 
@@ -74,8 +76,9 @@ enum
     IS_64_EFI,
     IS_IA_EFI,
     IS_ARM_EFI,
+    IS_HIBERNATED,
     OPT_TYPE_MIN = IS_PAE_DOMU,
-    OPT_TYPE_MAX = IS_ARM_EFI
+    OPT_TYPE_MAX = IS_HIBERNATED
   };
 
 
@@ -215,6 +218,17 @@ grub_cmd_file (grub_extcmd_context_t ctxt,
 	if (! (lh.loadflags & GRUB_LINUX_FLAG_BIG_KERNEL))
 	  break;
 	ret = 1;
+	break;
+      }
+    case IS_HIBERNATED:
+      {
+	grub_uint8_t hibr_file_magic[4];
+	if (grub_file_read (file, &hibr_file_magic, sizeof (hibr_file_magic))
+	    != sizeof (hibr_file_magic))
+	  break;
+	if (grub_memcmp ("hibr", hibr_file_magic, sizeof (hibr_file_magic)) == 0
+	    || grub_memcmp ("HIBR", hibr_file_magic, sizeof (hibr_file_magic)) == 0)
+	  ret = 1;
 	break;
       }
     case IS_32_EFI:
