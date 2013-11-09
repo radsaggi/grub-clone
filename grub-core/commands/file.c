@@ -68,6 +68,8 @@ static const struct grub_arg_option options[] =
      N_("Check if FILE is i386 xnu (Mac OS X kernel)"), 0, 0 },
     {"is-xnu-hibr", 0, 0,
      N_("Check if FILE is xnu (Mac OS X kernel) hibernated image"), 0, 0 },
+    {"is-bios-bootsector", 0, 0,
+     N_("Check if FILE is BIOS bootsector"), 0, 0 },
     {0, 0, 0, 0, 0, 0}
   };
 
@@ -88,8 +90,9 @@ enum
     IS_XNU64,
     IS_XNU32,
     IS_XNU_HIBR,
+    IS_BIOS_BOOTSECTOR,
     OPT_TYPE_MIN = IS_PAE_DOMU,
-    OPT_TYPE_MAX = IS_XNU32
+    OPT_TYPE_MAX = IS_BIOS_BOOTSECTOR
   };
 
 
@@ -125,6 +128,20 @@ grub_cmd_file (grub_extcmd_context_t ctxt,
     return grub_errno;
   switch (type)
     {
+    case IS_BIOS_BOOTSECTOR:
+      {
+	grub_uint16_t sig;
+	if (grub_file_size (file) != 512)
+	  break;
+	if (grub_file_seek (file, 510) == (grub_size_t) -1)
+	  break;
+	if (grub_file_read (file, &sig, 2) != 2)
+	  break;
+	if (sig != grub_cpu_to_le16_compile_time (0xaa55))
+	  break;
+	ret = 1;
+	break;
+      }
     case IS_PAE_DOMU ... IS_DOM0:
       {
 	struct grub_xen_file_info xen_inf;
