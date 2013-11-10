@@ -48,7 +48,7 @@ netbsd_load_fs_module ()
       ;;
   esac
 
-  case $(${grub_probe} --target=fs -d ${GRUB_DEVICE}) in
+  case $GRUB_FS in
     ext2)
       kmod="ext2fs"
       ;;

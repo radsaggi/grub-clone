@@ -36,6 +36,21 @@ else
     check=--is-${GRUB_PLATFORM}-linux
 fi
 
+case "x$GRUB_PLATFORM" in
+    xx86)
+	list=`for i in /boot/vmlinuz-* /vmlinuz-* /boot/kernel-* ; do
+                  if grub_file_is_not_garbage "$i" && "${grub_file}" $check "$i" ; then echo -n "$i " ; fi
+              done` ;;
+    *) 
+	list=`for i in /boot/vmlinuz-* /boot/vmlinux-* /vmlinuz-* /vmlinux-* /boot/kernel-* ; do
+                  if grub_file_is_not_garbage "$i" && "${grub_file}" $check "$i" ; then echo -n "$i " ; fi
+	     done` ;;
+esac
+
+if [ x"$list" = x ]; then
+    exit 0
+fi
+
 CLASS="--class gnu-linux --class gnu --class os"
 
 if [ "x${GRUB_DISTRIBUTOR}" = "x" ] ; then
@@ -61,13 +76,7 @@ else
   LINUX_ROOT_DEVICE=UUID=${GRUB_DEVICE_UUID}
 fi
 
-GRUBFS="`${grub_probe} --device ${GRUB_DEVICE} --target=fs 2>/dev/null || true`"
-
-if [ x"$GRUBFS" = x ]; then
-    GRUBFS="$(stat -f --printf=%T / || true)"
-fi
-
-case x"$GRUBFS" in
+case x"$GRUB_FS" in
     xbtrfs)
 	rootsubvol="`make_system_path_relative_to_its_root /`"
 	rootsubvol="${rootsubvol#/}"
@@ -159,17 +168,6 @@ EOF
 }
 EOF
 }
-
-case "x$GRUB_PLATFORM" in
-    xx86)
-	list=`for i in /boot/vmlinuz-* /vmlinuz-* /boot/kernel-* ; do
-                  if grub_file_is_not_garbage "$i" && "${grub_file}" $check "$i" ; then echo -n "$i " ; fi
-              done` ;;
-    *) 
-	list=`for i in /boot/vmlinuz-* /boot/vmlinux-* /vmlinuz-* /vmlinux-* /boot/kernel-* ; do
-                  if grub_file_is_not_garbage "$i" && "${grub_file}" $check "$i" ; then echo -n "$i " ; fi
-	     done` ;;
-esac
 
 case "$GRUB_PLATFORM" in
     x86 | i386-xen-pae | x86_64-xen) GENKERNEL_ARCH="x86" ;;

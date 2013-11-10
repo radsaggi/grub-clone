@@ -140,6 +140,10 @@ GRUB_DEVICE_BOOT_UUID="`${grub_probe} --device ${GRUB_DEVICE_BOOT} --target=fs_u
 # choosing Hurd filesystem module.
 GRUB_FS="`${grub_probe} --device ${GRUB_DEVICE} --target=fs 2> /dev/null || echo unknown`"
 
+if [ x"$GRUB_FS" = x ] || [ x"$GRUB_FS" = xunknown ]; then
+    GRUB_FS="$(stat -f --printf=%T / || echo unknown)"
+fi
+
 if test -f ${sysconfdir}/default/grub ; then
   . ${sysconfdir}/default/grub
 fi
@@ -240,11 +244,13 @@ EOF
 
 for i in "${grub_mkconfig_dir}"/* ; do
   case "$i" in
-      "${grub_mkconfig_dir}"/00_header.in)
+      "${grub_mkconfig_dir}"/00_header \
+      | "${grub_mkconfig_dir}"/30_os-prober \
+      | "${grub_mkconfig_dir}"/40_custom \
+      | "${grub_mkconfig_dir}"/41_custom)
 	      echo
               echo "### BEGIN $i ###"
               "$i"
-	      echo "fi"
               echo "### END $i ###"
       ;;
     # emacsen backup files. FIXME: support other editors
@@ -254,24 +260,26 @@ for i in "${grub_mkconfig_dir}"/* ; do
     *)
       if grub_file_is_not_garbage "$i" && test -x "$i" ; then
 	  for platform in x86 i386-xen-pae x86_64-xen mips mipsel sparc64 powerpc ia64 arm; do
-	      echo
-              echo "### BEGIN $i ($platform) ###"
 	      GRUB_PLATFORM=$platform
 	      export GRUB_PLATFORM
-	      case x$platform in
-		  xx86)
-		      echo "if [ x\"\$grub_platform != xxen \\(  x\"\$grub_cpu\" = xi386 -o x\"\$grub_cpu\" = xx86_64 -o x\"\$grub_platform\" = x \\) ]; then" ;;
-		  xi386-xen-pae)
-		      echo "if [ x\"\$grub_cpu-\$grub_platform\" = xi386-xen -o x\"\$grub_cpu-\$grub_platform\" = x ]; then" ;;
-		  xx86_64-xen)
-		      echo "if [ x\"\$grub_cpu-\$grub_platform\" = xx86_64-xen -o x\"\$grub_cpu-\$grub_platform\" = x ]; then" ;;
-		  *)
-		      echo "if [ x\"\$grub_cpu\" = x$platform -o x\"\$grub_platform\" = x ]; then" ;;
-	      esac
-              "$i"
-	      echo "  true"
-	      echo "fi"
-              echo "### END $i ($platform) ###"
+              buf="$($i)"
+	      if [ x"$buf" != x ]; then
+		  echo
+		  echo "### BEGIN $i ($platform) ###"
+		  case x$platform in
+		      xx86)
+			  echo "if [ x\"\$grub_platform\" != xxen \\(  x\"\$grub_cpu\" = xi386 -o x\"\$grub_cpu\" = xx86_64 -o x\"\$grub_platform\" = x \\) ]; then" ;;
+		      xi386-xen-pae)
+			  echo "if [ x\"\$grub_cpu-\$grub_platform\" = xi386-xen -o x\"\$grub_cpu-\$grub_platform\" = x ]; then" ;;
+		      xx86_64-xen)
+			  echo "if [ x\"\$grub_cpu-\$grub_platform\" = xx86_64-xen -o x\"\$grub_cpu-\$grub_platform\" = x ]; then" ;;
+		      *)
+			  echo "if [ x\"\$grub_cpu\" = x$platform -o x\"\$grub_platform\" = x ]; then" ;;
+		  esac
+		  echo "$buf"
+		  echo "fi"
+		  echo "### END $i ($platform) ###"
+	      fi
 	  done
       fi
     ;;
