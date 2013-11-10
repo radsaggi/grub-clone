@@ -74,6 +74,8 @@ grub_install_copy_file (const char *src,
   grub_util_fd_t in, out;  
   ssize_t r;
 
+  grub_util_info ("copying `%s' -> `%s'", src, dst);
+
   in = grub_util_fd_open (src, GRUB_UTIL_FD_O_RDONLY);
   if (!GRUB_UTIL_FD_IS_VALID (in))
     {
@@ -120,10 +122,12 @@ grub_install_compress_file (const char *in_name,
 			    int is_needed)
 {
   int ret;
+
   if (!compress_func)
     ret = grub_install_copy_file (in_name, out_name, is_needed);
   else
     {
+      grub_util_info ("compressing `%s' -> `%s'", in_name, out_name);
       ret = !compress_func (in_name, out_name);
       if (!ret && is_needed)
 	grub_util_warn ("can't compress `%s' to `%s'", in_name, out_name);
@@ -300,6 +304,10 @@ grub_install_parse (int key, char *arg)
       pubkeys[npubkeys++] = xstrdup (arg);
       return 1;
 
+    case GRUB_INSTALL_OPTIONS_VERBOSITY:
+      verbosity++;
+      return 1;
+
     case GRUB_INSTALL_OPTIONS_DIRECTORY:
     case GRUB_INSTALL_OPTIONS_DIRECTORY2:
       free (grub_install_source_directory);
@@ -457,6 +465,9 @@ copy_all (const char *srcd,
 	  || strcmp (de->d_name, "..") == 0)
 	continue;
       srcf = grub_util_path_concat (2, srcd, de->d_name);
+      if (grub_util_is_special_file (srcf)
+	  || grub_util_is_directory (srcf))
+	continue;
       dstf = grub_util_path_concat (2, dstd, de->d_name);
       grub_install_compress_file (srcf, dstf, 1);
       free (srcf);

@@ -640,7 +640,7 @@ grub_util_path_concat_real (size_t n, int ext, va_list ap)
       if ((p != r || (pi != l[i] && first)) && (p == r || *(p - 1) != '/'))
 	*p++ = '/';
       first = 0;
-      p = grub_stpcpy (p, l[i]);
+      p = grub_stpcpy (p, pi);
       while (p != r && p != r + 1 && *(p - 1) == '/')
 	p--;
     }

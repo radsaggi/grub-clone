@@ -51,7 +51,9 @@
       "FILE", OPTION_HIDDEN, 0, 1 },					\
     /* TRANSLATORS: "embed" is a verb (command description).  "*/	\
   { "pubkey",   'k', N_("FILE"), 0,					\
-      N_("embed FILE as public key for signature checking"), 0}
+      N_("embed FILE as public key for signature checking"), 0},	\
+  { "verbose", 'v', 0, 0,						\
+    N_("increase verbosity"), 1 }
 
 int
 grub_install_parse (int key, char *arg);
@@ -90,6 +92,7 @@ enum grub_install_plat
 
 enum grub_install_options {
   GRUB_INSTALL_OPTIONS_DIRECTORY = 'd',
+  GRUB_INSTALL_OPTIONS_VERBOSITY = 'v',
   GRUB_INSTALL_OPTIONS_MODULES = 0x201,
   GRUB_INSTALL_OPTIONS_INSTALL_MODULES,
   GRUB_INSTALL_OPTIONS_INSTALL_THEMES,
