@@ -55,6 +55,7 @@ usage () {
     gettext "Generate a grub config file"; echo
     echo
     print_option_help "-o, --output=$(gettext FILE)" "$(gettext "output generated config to FILE [default=stdout]")"
+    print_option_help "-r, --root-directory=$(gettext DIR)" "$(gettext "use DIR as root directory [default=/]")"
     print_option_help "-h, --help" "$(gettext "print this message and exit")"
     print_option_help "-v, --version" "$(gettext "print the version information and exit")"
     echo
@@ -71,6 +72,8 @@ argument () {
   fi
   echo $1
 }
+
+GRUB_ROOT=
 
 # Check the arguments.
 while test $# -gt 0
@@ -89,6 +92,11 @@ do
 	grub_cfg=`argument $option "$@"`; shift;;
     --output=*)
 	grub_cfg=`echo "$option" | sed 's/--output=//'`
+	;;
+    -r | --root-directory)
+	GRUB_ROOT=`argument $option "$@"`; shift;;
+    --root-directory=*)
+	GRUB_ROOT=`echo "$option" | sed 's/--output=//'`
 	;;
     -*)
 	gettext_printf "Unrecognized option \`%s'\n" "$option" 1>&2
@@ -129,11 +137,11 @@ else
 fi
 
 # Device containing our userland.  Typically used for root= parameter.
-GRUB_DEVICE="`${grub_probe} --target=device /`"
+GRUB_DEVICE="`${grub_probe} --target=device "$GRUB_ROOT"`"
 GRUB_DEVICE_UUID="`${grub_probe} --device ${GRUB_DEVICE} --target=fs_uuid 2> /dev/null`" || true
 
 # Device containing our /boot partition.  Usually the same as GRUB_DEVICE.
-GRUB_DEVICE_BOOT="`${grub_probe} --target=device /boot`"
+GRUB_DEVICE_BOOT="`${grub_probe} --target=device "$GRUB_ROOT"/boot`"
 GRUB_DEVICE_BOOT_UUID="`${grub_probe} --device ${GRUB_DEVICE_BOOT} --target=fs_uuid 2> /dev/null`" || true
 
 # Filesystem for the device containing our userland.  Used for stuff like
@@ -141,7 +149,7 @@ GRUB_DEVICE_BOOT_UUID="`${grub_probe} --device ${GRUB_DEVICE_BOOT} --target=fs_u
 GRUB_FS="`${grub_probe} --device ${GRUB_DEVICE} --target=fs 2> /dev/null || echo unknown`"
 
 if [ x"$GRUB_FS" = x ] || [ x"$GRUB_FS" = xunknown ]; then
-    GRUB_FS="$(stat -f --printf=%T / || echo unknown)"
+    GRUB_FS="$(stat -f --printf=%T "$GRUB_ROOT"/ || echo unknown)"
 fi
 
 if test -f ${sysconfdir}/default/grub ; then
@@ -178,6 +186,7 @@ if [ "x${GRUB_ACTUAL_DEFAULT}" = "xsaved" ] ; then GRUB_ACTUAL_DEFAULT="`"${grub
 # These are defined in this script, export them here so that user can
 # override them.
 export GRUB_DEVICE \
+  GRUB_ROOT \
   GRUB_DEVICE_UUID \
   GRUB_DEVICE_BOOT \
   GRUB_DEVICE_BOOT_UUID \

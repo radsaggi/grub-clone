@@ -34,13 +34,13 @@ osx_entry() {
     if [ x$2 = x32 ]; then
         # TRANSLATORS: it refers to kernel architecture (32-bit)
 	bitstr="$(gettext "(32-bit)")"
-	if ! [ -f /mach_kernel ] || ! "${grub_file}" --is-i386-xnu  /mach_kernel; then
+	if ! [ -f "$GRUB_ROOT"/mach_kernel ] || ! "${grub_file}" --is-i386-xnu  "$GRUB_ROOT"/mach_kernel; then
 	    return;
 	fi
     else
         # TRANSLATORS: it refers to kernel architecture (64-bit)
 	bitstr="$(gettext "(64-bit)")"
-	if ! [ -f /mach_kernel ] || ! "${grub_file}" --is-x86_64-xnu  /mach_kernel; then
+	if ! [ -f "$GRUB_ROOT"/mach_kernel ] || ! "${grub_file}" --is-x86_64-xnu  "$GRUB_ROOT"/mach_kernel; then
 	    return;
 	fi
     fi

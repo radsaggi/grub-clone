@@ -38,11 +38,11 @@ fi
 
 case "x$GRUB_PLATFORM" in
     xx86)
-	list=`for i in /boot/vmlinuz-* /vmlinuz-* /boot/kernel-* ; do
+	list=`for i in "$GRUB_ROOT"/boot/vmlinuz-* "$GRUB_ROOT"/vmlinuz-* "$GRUB_ROOT"/boot/kernel-* ; do
                   if grub_file_is_not_garbage "$i" && "${grub_file}" $check "$i" ; then echo -n "$i " ; fi
               done` ;;
     *) 
-	list=`for i in /boot/vmlinuz-* /boot/vmlinux-* /vmlinuz-* /vmlinux-* /boot/kernel-* ; do
+	list=`for i in "$GRUB_ROOT"/boot/vmlinuz-* "$GRUB_ROOT"/boot/vmlinux-* "$GRUB_ROOT"/vmlinuz-* "$GRUB_ROOT"/vmlinux-* "$GRUB_ROOT"/boot/kernel-* ; do
                   if grub_file_is_not_garbage "$i" && "${grub_file}" $check "$i" ; then echo -n "$i " ; fi
 	     done` ;;
 esac
@@ -78,14 +78,14 @@ fi
 
 case x"$GRUB_FS" in
     xbtrfs)
-	rootsubvol="`make_system_path_relative_to_its_root /`"
+	rootsubvol="`make_system_path_relative_to_its_root "$GRUB_ROOT"/`"
 	rootsubvol="${rootsubvol#/}"
 	if [ "x${rootsubvol}" != x ]; then
 	    GRUB_CMDLINE_LINUX="rootflags=subvol=${rootsubvol} ${GRUB_CMDLINE_LINUX}"
 	fi;;
     xzfs)
 	rpool=`${grub_probe} --device ${GRUB_DEVICE} --target=fs_label 2>/dev/null || true`
-	bootfs="`make_system_path_relative_to_its_root / | sed -e "s,@$,,"`"
+	bootfs="`make_system_path_relative_to_its_root "$GRUB_ROOT"/ | sed -e "s,@$,,"`"
 	LINUX_ROOT_DEVICE="ZFS=${rpool}${bootfs}"
 	;;
 esac
@@ -140,7 +140,7 @@ linux_entry ()
 
   echo "	insmod gzio" | sed "s/^/$submenu_indentation/"
 
-  if [ x$dirname = x/ ]; then
+  if [ x$dirname = x"$GRUB_ROOT"/ ]; then
     if [ -z "${prepare_root_cache}" ]; then
       prepare_root_cache="$(prepare_grub_to_access_device ${GRUB_DEVICE} | grub_add_tab)"
     fi
@@ -213,7 +213,7 @@ while [ "x$list" != "x" ] ; do
   done
 
   config=
-  for i in "${dirname}/config-${version}" "${dirname}/config-${alt_version}" "/etc/kernels/kernel-config-${version}" ; do
+  for i in "${dirname}/config-${version}" "${dirname}/config-${alt_version}" "$GRUB_ROOT/etc/kernels/kernel-config-${version}" ; do
     if test -e "${i}" ; then
       config="${i}"
       break
