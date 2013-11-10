@@ -94,6 +94,8 @@ enum
     OPTION_DISK_MODULE
   };
 
+static int fs_probe = 1;
+
 static error_t 
 argp_parser (int key, char *arg, struct argp_state *state)
 {
@@ -104,6 +106,10 @@ argp_parser (int key, char *arg, struct argp_state *state)
     case OPTION_FORCE_FILE_ID:
       force_file_id = 1;
       return 0;
+    case 's':
+      fs_probe = 0;
+      return 0;
+
       /* Accept and ignore for compatibility.  */
     case OPTION_FONT:
     case OPTION_SETUP:
@@ -229,6 +235,9 @@ static struct argp_option options[] = {
    N_("the ID of bootloader. This option is only available on EFI."), 2},
   {"efi-directory", OPTION_EFI_DIRECTORY, N_("DIR"), 0,
    N_("use DIR as the EFI System Partition root."), 2},
+  {"skip-fs-probe",'s',0,      0,
+   N_("do not probe for filesystems in DEVICE"), 0},
+
   {0, 0, 0, 0, 0, 0}
 };
 
@@ -1379,10 +1388,11 @@ main (int argc, char *argv[])
 					      "boot.img");
 	grub_install_copy_file (boot_img_src, boot_img, 1);
 
-	grub_util_info ("grub_bios_setup %s %s %s --directory='%s' --device-map='%s' '%s'",
+	grub_util_info ("grub_bios_setup %s %s %s %s --directory='%s' --device-map='%s' '%s'",
 			allow_floppy ? "--allow-floppy " : "",
 			verbosity ? "--verbose " : "",
 			force ? "--force " : "",
+			!fs_probe ? "--skip-fs-probe" : "",
 			platdir,
 			device_map,
 			install_device);
@@ -1390,7 +1400,7 @@ main (int argc, char *argv[])
 	/*  Now perform the installation.  */
 	grub_util_bios_setup (platdir, "boot.img", "core.img",
 			      install_drive, force,
-			      1, allow_floppy);
+			      fs_probe, allow_floppy);
 	break;
       }
     case GRUB_INSTALL_PLATFORM_SPARC64_IEEE1275:
@@ -1402,10 +1412,11 @@ main (int argc, char *argv[])
 					      "boot.img");
 	grub_install_copy_file (boot_img_src, boot_img, 1);
 
-	grub_util_info ("grub_sparc_setup %s %s %s --directory='%s' --device-map='%s' '%s'",
+	grub_util_info ("grub_sparc_setup %s %s %s %s --directory='%s' --device-map='%s' '%s'",
 			allow_floppy ? "--allow-floppy " : "",
 			verbosity ? "--verbose " : "",
 			force ? "--force " : "",
+			!fs_probe ? "--skip-fs-probe" : "",
 			platdir,
 			device_map,
 			install_drive);
@@ -1413,7 +1424,7 @@ main (int argc, char *argv[])
 	/*  Now perform the installation.  */
 	grub_util_sparc_setup (platdir, "boot.img", "core.img",
 			       install_device, force,
-			       1, allow_floppy);
+			       fs_probe, allow_floppy);
 	break;
       }
 
