@@ -1,3 +1,48 @@
+2013-11-10  Vladimir Serbinenko  <phcoder@gmail.com>
+
+	Fix grub_machine_fini bitrot.
+
+	Reported by: Glenn Washburn.
+
+2013-11-10  Vladimir Serbinenko  <phcoder@gmail.com>
+
+	* configure.ac: Remove leftover -fnested-funcions -Wl,-allow_execute.
+
+2013-11-10  Vladimir Serbinenko  <phcoder@gmail.com>
+
+	* grub-core/Makefile.am (efiemu): Remove leftover -DAPPLE_CC and
+	-DELF.
+	* grub-core/efiemu/runtime/config.h: Use __i386__ and __x86_64__
+	instead of ELF*.
+
+2013-11-10  Vladimir Serbinenko  <phcoder@gmail.com>
+
+	* configure.ac: Restore CFLAGS to TARGET_CFLAGS before external tests.
+	Add -march=core2 when testing compile of efiemu64.
+
+	Thanks Andrey Borzenkov for spotting this.
+
+2013-11-09  Vladimir Serbinenko  <phcoder@gmail.com>
+
+	Add new ports: i386-xen and x86_64-xen. This allows running GRUB in
+	XEN PV environment and load kernels.
+
+2013-11-09  Vladimir Serbinenko  <phcoder@gmail.com>
+
+	* grub-core/loader/i386/multiboot_mbi.c: Handle space in command line.
+	* grub-core/loader/multiboot_mbi2.c: Likewise.
+
+2013-11-09  Vladimir Serbinenko  <phcoder@gmail.com>
+
+	* grub-core/lib/cmdline.c (grub_loader_cmdline_size): Fix empty cmdline
+	handling.
+
+2013-11-09  Vladimir Serbinenko  <phcoder@gmail.com>
+
+	* grub-core/commands/i386/cmostest.c: Add new command "cmosset".
+
+	Tested by: Denis 'GNUtoo' Carikli.
+
 2013-11-08  Vladimir Serbinenko  <phcoder@gmail.com>
 
 	* grub-core/normal/datetime.c (grub_get_weekday): Use unsigned types.

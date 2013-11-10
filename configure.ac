@@ -129,6 +129,7 @@ fi
 case "$target_cpu"-"$platform" in
   x86_64-efi) ;;
   x86_64-emu) ;;
+  x86_64-xen) ;;
   x86_64-*) target_cpu=i386 ;;
   powerpc64-ieee1275) target_cpu=powerpc ;;
 esac
@@ -137,6 +138,8 @@ esac
 case "$target_cpu"-"$platform" in
   i386-efi) ;;
   x86_64-efi) ;;
+  i386-xen) ;;
+  x86_64-xen) ;;
   i386-pc) ;;
   i386-multiboot) ;;
   i386-coreboot) ;;
@@ -195,6 +198,7 @@ case "$platform" in
   coreboot)	machine_CPPFLAGS="$machine_CPPFLAGS -DGRUB_MACHINE_COREBOOT=1" ;;
   multiboot)	machine_CPPFLAGS="$machine_CPPFLAGS -DGRUB_MACHINE_MULTIBOOT=1" ;;
   efi)		machine_CPPFLAGS="$machine_CPPFLAGS -DGRUB_MACHINE_EFI=1" ;;
+  xen)		machine_CPPFLAGS="$machine_CPPFLAGS -DGRUB_MACHINE_XEN=1" ;;
   ieee1275)	machine_CPPFLAGS="$machine_CPPFLAGS -DGRUB_MACHINE_IEEE1275=1" ;;
   uboot)	machine_CPPFLAGS="$machine_CPPFLAGS -DGRUB_MACHINE_UBOOT=1" ;;
   qemu)		machine_CPPFLAGS="$machine_CPPFLAGS -DGRUB_MACHINE_QEMU=1" ;;
@@ -348,10 +352,6 @@ case "$host_os" in
 esac
 
 grub_apple_cc
-if test x$grub_cv_apple_cc = xyes ; then
-  HOST_CPPFLAGS="$HOST_CPPFLAGS -fnested-functions"
-  HOST_LDFLAGS="$HOST_LDFLAGS -Wl,-allow_stack_execute"
-fi
 
 if test x$USE_NLS = xno; then
   HOST_CFLAGS="$HOST_CFLAGS -fno-builtin-gettext"
@@ -670,7 +670,7 @@ if test x"$platform" = xefi ; then
 fi
 if test x"$efiemu_excuse" = x ; then
   AC_CACHE_CHECK([whether options required for efiemu work], grub_cv_cc_efiemu, [
-    CFLAGS="$TARGET_CFLAGS -m64 -mcmodel=large -mno-red-zone -nostdlib"
+    CFLAGS="$TARGET_CFLAGS -march=core2 -m64 -mcmodel=large -mno-red-zone -nostdlib"
     AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]], [[]])],
 		      [grub_cv_cc_efiemu=yes],
 		      [grub_cv_cc_efiemu=no])
@@ -760,6 +760,8 @@ fi
 # Compiler features.
 #
 
+CFLAGS="$TARGET_CFLAGS"
+
 # Position independent executable.
 grub_CHECK_PIE
 [# Need that, because some distributions ship compilers that include
@@ -767,6 +769,8 @@ grub_CHECK_PIE
 if [ x"$pie_possible" = xyes ]; then
   TARGET_CFLAGS="$TARGET_CFLAGS -fno-PIE"
 fi]
+
+CFLAGS="$TARGET_CFLAGS"
 
 # Position independent executable.
 grub_CHECK_PIC
@@ -776,6 +780,8 @@ if [ x"$pic_possible" = xyes ]; then
   TARGET_CFLAGS="$TARGET_CFLAGS -fno-PIC"
 fi]
 
+CFLAGS="$TARGET_CFLAGS"
+
 # Smashing stack protector.
 grub_CHECK_STACK_PROTECTOR
 # Need that, because some distributions ship compilers that include
@@ -783,12 +789,17 @@ grub_CHECK_STACK_PROTECTOR
 if test "x$ssp_possible" = xyes; then
   TARGET_CFLAGS="$TARGET_CFLAGS -fno-stack-protector"
 fi
+
+CFLAGS="$TARGET_CFLAGS"
+
 grub_CHECK_STACK_ARG_PROBE
 # Cygwin's GCC uses alloca() to probe the stackframe on static
 # stack allocations above some threshold.
 if test x"$sap_possible" = xyes; then
   TARGET_CFLAGS="$TARGET_CFLAGS -mno-stack-arg-probe"
 fi
+
+CFLAGS="$TARGET_CFLAGS"
 
 # -mno-unaligned-access
 if test "$target_cpu" = arm; then
@@ -1382,6 +1393,8 @@ AM_CONDITIONAL([COND_i386_ieee1275], [test x$target_cpu = xi386 -a x$platform = 
 AM_CONDITIONAL([COND_i386_coreboot], [test x$target_cpu = xi386 -a x$platform = xcoreboot])
 AM_CONDITIONAL([COND_i386_multiboot], [test x$target_cpu = xi386 -a x$platform = xmultiboot])
 AM_CONDITIONAL([COND_x86_64_efi], [test x$target_cpu = xx86_64 -a x$platform = xefi])
+AM_CONDITIONAL([COND_i386_xen], [test x$target_cpu = xi386 -a x$platform = xxen])
+AM_CONDITIONAL([COND_x86_64_xen], [test x$target_cpu = xx86_64 -a x$platform = xxen])
 AM_CONDITIONAL([COND_mips_loongson], [test x$target_cpu = xmipsel -a x$platform = xloongson])
 AM_CONDITIONAL([COND_mips_qemu_mips], [test "(" x$target_cpu = xmips -o x$target_cpu = xmipsel ")"  -a x$platform = xqemu_mips])
 AM_CONDITIONAL([COND_mips_arc], [test "(" x$target_cpu = xmips -o x$target_cpu = xmipsel ")"  -a x$platform = xarc])
