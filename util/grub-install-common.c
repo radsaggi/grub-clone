@@ -357,22 +357,28 @@ grub_install_parse (int key, char *arg)
     }
 }
 
-void
-grub_install_args_finish (void)
+static int
+decompressors (void)
 {
   if (compress_func == grub_install_compress_gzip)
-    grub_install_push_module ("gzio");
+    {
+      grub_install_push_module ("gzio");
+      return 1;
+    }
   if (compress_func == grub_install_compress_xz)
     {
       grub_install_push_module ("xzio");
       grub_install_push_module ("gcry_crc");
+      return 2;
     }
   if (compress_func == grub_install_compress_lzop)
     {
       grub_install_push_module ("lzopio");
       grub_install_push_module ("adler32");
       grub_install_push_module ("gcry_crc");
+      return 3;
     }
+  return 0;
 }
 
 void
@@ -394,6 +400,7 @@ grub_install_make_image_wrap_file (const char *dir, const char *prefix,
   grub_size_t slen = 1;
   char *s, *p;
   char **pk, **md;
+  int dc = decompressors ();
 
   if (memdisk_path)
     slen += 20 + grub_strlen (memdisk_path);
@@ -456,6 +463,8 @@ grub_install_make_image_wrap_file (const char *dir, const char *prefix,
 			       modules.entries, memdisk_path,
 			       pubkeys, npubkeys, config_path, tgt,
 			       note, comp);
+  while (dc--)
+    grub_install_pop_module ();
 }
 
 void

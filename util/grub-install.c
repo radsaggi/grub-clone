@@ -679,8 +679,6 @@ main (int argc, char *argv[])
 
   argp_parse (&argp, argc, argv, 0, 0, 0);
 
-  grub_install_args_finish ();
-
   if (verbosity > 1)
     grub_env_set ("debug", "all");
 

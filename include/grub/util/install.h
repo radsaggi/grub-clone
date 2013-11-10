@@ -103,9 +103,6 @@ enum grub_install_options {
   GRUB_INSTALL_OPTIONS_GRUB_MKIMAGE
 };
 
-void
-grub_install_args_finish (void);
-
 extern char *grub_install_source_directory;
 
 enum grub_install_plat

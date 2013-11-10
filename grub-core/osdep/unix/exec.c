@@ -127,12 +127,17 @@ grub_util_exec_redirect (const char *const *argv, const char *stdin_file,
 #endif
 
       in = open (stdin_file, O_RDONLY);
+      if (in < 0)
+	exit (127);
       dup2 (in, STDIN_FILENO);
       close (in);
 
       out = open (stdout_file, O_WRONLY | O_CREAT, 0700);
       dup2 (out, STDOUT_FILENO);
       close (out);
+
+      if (out < 0)
+	exit (127);
 
       /* Ensure child is not localised.  */
       setenv ("LC_ALL", "C", 1);
