@@ -38,6 +38,23 @@ grub_util_exec (const char *const *argv)
 {
   pid_t pid;
   int status = -1;
+  char *str, *pstr;
+  const char *const *ptr;
+  grub_size_t strl = 0;
+  for (ptr = argv; *ptr; ptr++)
+    strl += grub_strlen (*ptr) + 1;
+  pstr = str = xmalloc (strl);
+  for (ptr = argv; *ptr; ptr++)
+    {
+      pstr = grub_stpcpy (pstr, *ptr);
+      *pstr++ = ' ';
+    }
+  if (pstr > str)
+    pstr--;
+  *pstr = '\0';
+
+  grub_util_info ("executing %s", str);
+  grub_free (str);
 
   pid = fork ();
   if (pid < 0)
@@ -71,6 +88,29 @@ grub_util_exec_redirect (const char *const *argv, const char *stdin_file,
 {
   pid_t mdadm_pid;
   int status = -1;
+  char *str, *pstr;
+  const char *const *ptr;
+  grub_size_t strl = 0;
+  for (ptr = argv; *ptr; ptr++)
+    strl += grub_strlen (*ptr) + 1;
+  strl += grub_strlen (stdin_file) + 2;
+  strl += grub_strlen (stdout_file) + 2;
+
+  pstr = str = xmalloc (strl);
+  for (ptr = argv; *ptr; ptr++)
+    {
+      pstr = grub_stpcpy (pstr, *ptr);
+      *pstr++ = ' ';
+    }
+  *pstr++ = '<';
+  pstr = grub_stpcpy (pstr, stdin_file);
+  *pstr++ = ' ';
+  *pstr++ = '>';
+  pstr = grub_stpcpy (pstr, stdin_file);
+  *pstr = '\0';
+
+  grub_util_info ("executing %s", str);
+  grub_free (str);
 
   mdadm_pid = fork ();
   if (mdadm_pid < 0)

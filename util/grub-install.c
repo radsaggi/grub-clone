@@ -715,7 +715,7 @@ main (int argc, char *argv[])
 	  target = xstrdup (t); 
 	}
       grub_install_source_directory
-	= grub_util_path_concat (3, grub_util_get_pkglibdir (), target);
+	= grub_util_path_concat (2, grub_util_get_pkglibdir (), target);
     }
 
   platform = grub_install_get_target (grub_install_source_directory);

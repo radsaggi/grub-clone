@@ -31,7 +31,6 @@ grub_util_parse_config (FILE *f, struct grub_util_config *cfg, int simple)
   while (getline (&buffer, &sz, f) >= 0)
     {
       const char *ptr;
-      grub_printf ("<%s", buffer);
       for (ptr = buffer; *ptr && grub_isspace (*ptr); ptr++);
       if (grub_strncmp (ptr, "GRUB_ENABLE_CRYPTODISK=",
 			sizeof ("GRUB_ENABLE_CRYPTODISK=") - 1) == 0)

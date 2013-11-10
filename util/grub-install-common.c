@@ -384,6 +384,70 @@ grub_install_make_image_wrap_file (const char *dir, const char *prefix,
 				   grub_compression_t comp)
 {
   const struct grub_install_image_target_desc *tgt;
+  const char *const compnames[] = 
+    {
+      [GRUB_COMPRESSION_AUTO] = "auto",
+      [GRUB_COMPRESSION_NONE] = "none",
+      [GRUB_COMPRESSION_XZ] = "xz",
+      [GRUB_COMPRESSION_LZMA] = "lzma",
+    };
+  grub_size_t slen = 1;
+  char *s, *p;
+  char **pk, **md;
+
+  if (memdisk_path)
+    slen += 20 + grub_strlen (memdisk_path);
+  if (config_path)
+    slen += 20 + grub_strlen (config_path);
+
+  for (pk = pubkeys; pk < pubkeys + npubkeys; pk++)
+    slen += 20 + grub_strlen (*pk);
+
+  for (md = modules.entries; *md; md++)
+    {
+      slen += 10 + grub_strlen (*md);
+    }
+
+  p = s = xmalloc (slen);
+  if (memdisk_path)
+    {
+      p = grub_stpcpy (p, "--memdisk '");
+      p = grub_stpcpy (p, memdisk_path);
+      *p++ = '\'';
+      *p++ = ' ';
+    }
+  if (config_path)
+    {
+      p = grub_stpcpy (p, "--config '");
+      p = grub_stpcpy (p, config_path);
+      *p++ = '\'';
+      *p++ = ' ';
+    }
+  for (pk = pubkeys; pk < pubkeys + npubkeys; pk++)
+    {
+      p = grub_stpcpy (p, "--pubkey '");
+      p = grub_stpcpy (p, *pk);
+      *p++ = '\'';
+      *p++ = ' ';
+    }
+
+  for (md = modules.entries; *md; md++)
+    {
+      *p++ = '\'';
+      p = grub_stpcpy (p, *md);
+      *p++ = '\'';
+      *p++ = ' ';
+    }
+
+  *p = '\0';
+
+  grub_util_info ("grub-mkimage --directory '%s' --prefix '%s'"
+		  " --output '%s' "
+		  "--format '%s' --compression '%s' %s %s\n",
+		  dir, prefix,
+		  outname, mkimage_target,
+		  compnames[comp], note ? "--note" : "", s);
+
   tgt = grub_install_get_image_target (mkimage_target);
   if (!tgt)
     grub_util_error (_("unknown target format %s\n"), mkimage_target);
@@ -402,6 +466,7 @@ grub_install_make_image_wrap (const char *dir, const char *prefix,
 			      grub_compression_t comp)
 {
   FILE *fp;
+
   fp = grub_util_fopen (outname, "wb");
   if (! fp)
     grub_util_error (_("cannot open `%s': %s"), outname,
