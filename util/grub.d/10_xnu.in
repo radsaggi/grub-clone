@@ -26,13 +26,23 @@ export TEXTDOMAINDIR="@localedir@"
 
 . "@datadir@/@PACKAGE@/grub-mkconfig_lib"
 
+if [ x$GRUB_PLATFORM != xx86 ]; then
+    exit 0
+fi
+
 osx_entry() {
     if [ x$2 = x32 ]; then
         # TRANSLATORS: it refers to kernel architecture (32-bit)
 	bitstr="$(gettext "(32-bit)")"
+	if ! [ -f /mach_kernel ] || ! "${grub_file}" --is-i386-xnu  /mach_kernel; then
+	    return;
+	fi
     else
         # TRANSLATORS: it refers to kernel architecture (64-bit)
 	bitstr="$(gettext "(64-bit)")"
+	if ! [ -f /mach_kernel ] || ! "${grub_file}" --is-x86_64-xnu  /mach_kernel; then
+	    return;
+	fi
     fi
     # TRANSLATORS: it refers on the OS residing on device %s
     onstr="$(gettext_printf "(on %s)" "${GRUB_DEVICE}")"

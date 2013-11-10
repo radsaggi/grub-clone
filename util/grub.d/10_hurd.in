@@ -21,6 +21,16 @@ prefix="@prefix@"
 exec_prefix="@exec_prefix@"
 datarootdir="@datarootdir@"
 
+if [ x$GRUB_PLATFORM = xx86 ]; then
+    check=--is-x86-multiboot
+elif [ x$GRUB_PLATFORM = xi386-xen-pae ]; then
+    check=--is-i386-xen-pae-domu
+elif [ x$GRUB_PLATFORM = xx86_64-xen ]; then
+    check=--is-x86_64-xen-domu
+else
+    exit 0
+fi
+
 export TEXTDOMAIN=@PACKAGE@
 export TEXTDOMAINDIR="@localedir@"
 
@@ -41,10 +51,10 @@ all_of_them=true
 # FIXME: add l4 here?
 kernel=
 for i in /boot/gnumach* ; do
-  if test -e $i ; then
-    basename=`basename $i`
-    dirname=`dirname $i`
-    rel_dirname=`make_system_path_relative_to_its_root $dirname`
+  if test -f "$i" && "${grub_file}" $check "$i" ; then
+    basename=`basename "$i"`
+    dirname=`dirname "$i"`
+    rel_dirname=`make_system_path_relative_to_its_root "$dirname"`
     gettext_printf "Found GNU Mach: %s" "$i" >&2
     echo >&2
     kernels="${kernels} ${rel_dirname}/${basename}"

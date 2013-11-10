@@ -26,6 +26,16 @@ datarootdir="@datarootdir@"
 export TEXTDOMAIN=@PACKAGE@
 export TEXTDOMAINDIR="@localedir@"
 
+if [ x$GRUB_PLATFORM = xx86 ]; then
+    check=--is-x86-linux32
+elif [ x$GRUB_PLATFORM = xi386-xen-pae ]; then
+    check=--is-i386-xen-pae-domu
+elif [ x$GRUB_PLATFORM = xx86_64-xen ]; then
+    check=--is-x86_64-xen-domu
+else
+    check=--is-${GRUB_PLATFORM}-linux
+fi
+
 CLASS="--class gnu-linux --class gnu --class os"
 
 if [ "x${GRUB_DISTRIBUTOR}" = "x" ] ; then
@@ -150,24 +160,23 @@ EOF
 EOF
 }
 
-machine=`uname -m`
-case "x$machine" in
-    xi?86 | xx86_64)
+case "x$GRUB_PLATFORM" in
+    xx86)
 	list=`for i in /boot/vmlinuz-* /vmlinuz-* /boot/kernel-* ; do
-                  if grub_file_is_not_garbage "$i" ; then echo -n "$i " ; fi
+                  if grub_file_is_not_garbage "$i" && "${grub_file}" $check "$i" ; then echo -n "$i " ; fi
               done` ;;
     *) 
 	list=`for i in /boot/vmlinuz-* /boot/vmlinux-* /vmlinuz-* /vmlinux-* /boot/kernel-* ; do
-                  if grub_file_is_not_garbage "$i" ; then echo -n "$i " ; fi
+                  if grub_file_is_not_garbage "$i" && "${grub_file}" $check "$i" ; then echo -n "$i " ; fi
 	     done` ;;
 esac
 
-case "$machine" in
-    i?86) GENKERNEL_ARCH="x86" ;;
+case "$GRUB_PLATFORM" in
+    x86 | i386-xen-pae | x86_64-xen) GENKERNEL_ARCH="x86" ;;
     mips|mips64) GENKERNEL_ARCH="mips" ;;
     mipsel|mips64el) GENKERNEL_ARCH="mipsel" ;;
     arm*) GENKERNEL_ARCH="arm" ;;
-    *) GENKERNEL_ARCH="$machine" ;;
+    *) GENKERNEL_ARCH="$GRUB_PLATFORM" ;;
 esac
 
 prepare_boot_cache=
