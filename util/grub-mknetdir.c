@@ -157,7 +157,6 @@ process_input_dir (const char *input_dir, enum grub_install_plat platform)
   printf (_("Netboot directory for %s created. Configure your DHCP server to point to %s\n"),
 	  platsub, output);
 
-  free (prefix);
   free (platsub);
   free (output);
   free (prefix);
