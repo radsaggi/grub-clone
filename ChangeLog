@@ -1,3 +1,8 @@
+2013-11-10  Andrey Borzenkov <arvidjaar@gmail.com>
+
+	*  util/grub-install.c (device_map_check_duplicates): Fix incorrect
+	order of qsort arguments (number of elements vs. element size).
+
 2013-11-10  Vladimir Serbinenko  <phcoder@gmail.com>
 
 	Fix grub_machine_fini bitrot.

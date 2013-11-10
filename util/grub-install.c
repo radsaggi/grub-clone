@@ -560,7 +560,7 @@ device_map_check_duplicates (const char *dev_map)
 
   fclose (fp);
 
-  qsort (d, sizeof (d[0]), filled, (int (*) (const void *, const void *))strcmp);
+  qsort (d, filled, sizeof (d[0]), (int (*) (const void *, const void *))strcmp);
 
   for (i = 0; i + 1 < filled; i++)
     if (strcmp (d[i], d[i+1]) == 0)
