@@ -106,7 +106,7 @@ grub_util_exec_redirect (const char *const *argv, const char *stdin_file,
   pstr = grub_stpcpy (pstr, stdin_file);
   *pstr++ = ' ';
   *pstr++ = '>';
-  pstr = grub_stpcpy (pstr, stdin_file);
+  pstr = grub_stpcpy (pstr, stdout_file);
   *pstr = '\0';
 
   grub_util_info ("executing %s", str);
