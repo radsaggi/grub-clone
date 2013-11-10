@@ -1,8 +1,6 @@
-/* cpuid.c - test for CPU features */
 /*
  *  GRUB  --  GRand Unified Bootloader
- *  Copyright (C) 2006, 2007, 2009  Free Software Foundation, Inc.
- *  Based on gcc/gcc/config/i386/driver-i386.c
+ *  Copyright (C) 2013  Free Software Foundation, Inc.
  *
  *  GRUB is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -32,6 +30,7 @@
 #include <grub/i386/linux.h>
 #include <grub/xnu.h>
 #include <grub/machoload.h>
+#include <grub/fileid.h>
 
 GRUB_MOD_LICENSE ("GPLv3+");
 
@@ -64,6 +63,20 @@ static const struct grub_arg_option options[] =
      N_("Check if FILE is x86 linux"), 0, 0},
     {"is-x86-linux32", 0, 0,
      N_("Check if FILE is x86 linux supporting 32-bit protocol"), 0, 0},
+    {"is-x86-kfreebsd", 0, 0,
+     N_("Check if FILE is x86 kfreebsd"), 0, 0},
+    {"is-i386-kfreebsd", 0, 0,
+     N_("Check if FILE is i386 kfreebsd"), 0, 0},
+    {"is-x86_64-kfreebsd", 0, 0,
+     N_("Check if FILE is x86_64 kfreebsd"), 0, 0},
+
+    {"is-x86-knetbsd", 0, 0,
+     N_("Check if FILE is x86 knetbsd"), 0, 0},
+    {"is-i386-knetbsd", 0, 0,
+     N_("Check if FILE is i386 knetbsd"), 0, 0},
+    {"is-x86_64-knetbsd", 0, 0,
+     N_("Check if FILE is x86_64 knetbsd"), 0, 0},
+
     {"is-i386-efi", 0, 0,
      N_("Check if FILE is i386 EFI file"), 0, 0},
     {"is-x86_64-efi", 0, 0,
@@ -100,6 +113,12 @@ enum
     IS_POWERPC_LINUX,
     IS_X86_LINUX,
     IS_X86_LINUX32,
+    IS_X86_KFREEBSD,
+    IS_X86_KFREEBSD32,
+    IS_X86_KFREEBSD64,
+    IS_X86_KNETBSD,
+    IS_X86_KNETBSD32,
+    IS_X86_KNETBSD64,
     IS_32_EFI,
     IS_64_EFI,
     IS_IA_EFI,
@@ -270,6 +289,76 @@ grub_cmd_file (grub_extcmd_context_t ctxt,
 
 	break;
       }
+
+    case IS_X86_KNETBSD:
+    case IS_X86_KNETBSD32:
+    case IS_X86_KNETBSD64:
+      {
+	int is32, is64;
+
+	elf = grub_elf_file (file, file->name);
+
+	if (elf->ehdr.ehdr32.e_type != grub_cpu_to_le16_compile_time (ET_EXEC)
+	    || elf->ehdr.ehdr32.e_ident[EI_DATA] != ELFDATA2LSB)
+	  break;
+
+	is32 = grub_elf_is_elf32 (elf);
+	is64 = grub_elf_is_elf64 (elf);
+	if (!is32 && !is64)
+	  break;
+	if (!is32 && type == IS_X86_KNETBSD32)
+	  break;
+	if (!is64 && type == IS_X86_KNETBSD64)
+	  break;
+	if (is64)
+	  ret = grub_file_check_netbsd64 (elf);
+	if (is32)
+	  ret = grub_file_check_netbsd32 (elf);
+	break;
+      }
+
+    case IS_X86_KFREEBSD:
+    case IS_X86_KFREEBSD32:
+    case IS_X86_KFREEBSD64:
+      {
+	Elf32_Ehdr ehdr;
+	int is32, is64;
+
+	if (grub_file_read (file, &ehdr, sizeof (ehdr))
+	    != sizeof (ehdr))
+	  break;
+
+	if (ehdr.e_ident[EI_MAG0] != ELFMAG0
+	    || ehdr.e_ident[EI_MAG1] != ELFMAG1
+	    || ehdr.e_ident[EI_MAG2] != ELFMAG2
+	    || ehdr.e_ident[EI_MAG3] != ELFMAG3
+	    || ehdr.e_ident[EI_VERSION] != EV_CURRENT
+	    || ehdr.e_version != EV_CURRENT)
+	  break;
+
+	if (ehdr.e_type != grub_cpu_to_le16_compile_time (ET_EXEC)
+	    || ehdr.e_ident[EI_DATA] != ELFDATA2LSB)
+	  break;
+
+	if (ehdr.e_ident[EI_OSABI] != ELFOSABI_FREEBSD)
+	  break;
+
+	is32 = (ehdr.e_machine == grub_cpu_to_le16_compile_time (EM_386)
+		&& ehdr.e_ident[EI_CLASS] == ELFCLASS32);
+	is64 = (ehdr.e_machine == grub_cpu_to_le16_compile_time (EM_X86_64)
+		&& ehdr.e_ident[EI_CLASS] == ELFCLASS64);
+	if (!is32 && !is64)
+	  break;
+	if (!is32 && (type == IS_X86_KFREEBSD32 || type == IS_X86_KNETBSD32))
+	  break;
+	if (!is64 && (type == IS_X86_KFREEBSD64 || type == IS_X86_KNETBSD64))
+	  break;
+	ret = 1;
+
+	break;
+      }
+
+
     case IS_MIPSEL_LINUX:
       {
 	Elf32_Ehdr ehdr;
