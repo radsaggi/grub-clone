@@ -37,12 +37,12 @@ GRUB_MOD_LICENSE ("GPLv3+");
 
 static const struct grub_arg_option options[] =
   {
-    {"is-xen-i386-pae-domu", 0, 0,
+    {"is-i386-xen-pae-domu", 0, 0,
      N_("Check if FILE can be booted as i386 PAE xen unprivilegied guest"),
      0, 0},
-    {"is-xen-x86_64-domu", 0, 0,
+    {"is-x86_64-xen-domu", 0, 0,
      N_("Check if FILE can be booted as x86_64 xen unprivilegied guest"), 0, 0},
-    {"is-xen-x86-dom0", 0, 0,
+    {"is-x86-xen-dom0", 0, 0,
      N_("Check if FILE can be used as xen x86 privilegied guest kernel"), 0, 0},
     {"is-x86-multiboot", 0, 0,
      N_("Check if FILE can be used as x86 multiboot kernel"), 0, 0},
@@ -80,7 +80,7 @@ static const struct grub_arg_option options[] =
      N_("Check if FILE is i386 xnu (Mac OS X kernel)"), 0, 0 },
     {"is-xnu-hibr", 0, 0,
      N_("Check if FILE is xnu (Mac OS X kernel) hibernated image"), 0, 0 },
-    {"is-bios-bootsector", 0, 0,
+    {"is-x86-bios-bootsector", 0, 0,
      N_("Check if FILE is BIOS bootsector"), 0, 0 },
     {0, 0, 0, 0, 0, 0}
   };
