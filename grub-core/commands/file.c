@@ -48,6 +48,18 @@ static const struct grub_arg_option options[] =
      N_("Check if FILE can be used as x86 multiboot kernel"), 0, 0},
     {"is-x86-multiboot2", 0, 0,
      N_("Check if FILE can be used as x86 multiboot2 kernel"), 0, 0},
+    {"is-arm-linux", 0, 0,
+     N_("Check if FILE is ARM linux"), 0, 0},
+    {"is-ia64-linux", 0, 0,
+     N_("Check if FILE is IA64 linux"), 0, 0},
+    {"is-mips-linux", 0, 0,
+     N_("Check if FILE is MIPS linux"), 0, 0},
+    {"is-mipsel-linux", 0, 0,
+     N_("Check if FILE is MIPSEL linux"), 0, 0},
+    {"is-sparc64-linux", 0, 0,
+     N_("Check if FILE is SPARC64 linux"), 0, 0},
+    {"is-powerpc-linux", 0, 0,
+     N_("Check if FILE is POWERPC linux"), 0, 0},
     {"is-x86-linux", 0, 0,
      N_("Check if FILE is x86 linux"), 0, 0},
     {"is-x86-linux32", 0, 0,
@@ -80,6 +92,12 @@ enum
     IS_DOM0,
     IS_MULTIBOOT,
     IS_MULTIBOOT2,
+    IS_ARM_LINUX,
+    IS_IA64_LINUX,
+    IS_MIPS_LINUX,
+    IS_MIPSEL_LINUX,
+    IS_SPARC64_LINUX,
+    IS_POWERPC_LINUX,
     IS_X86_LINUX,
     IS_X86_LINUX32,
     IS_32_EFI,
@@ -138,6 +156,152 @@ grub_cmd_file (grub_extcmd_context_t ctxt,
 	if (grub_file_read (file, &sig, 2) != 2)
 	  break;
 	if (sig != grub_cpu_to_le16_compile_time (0xaa55))
+	  break;
+	ret = 1;
+	break;
+      }
+    case IS_IA64_LINUX:
+      {
+	Elf64_Ehdr ehdr;
+
+	if (grub_file_read (file, &ehdr, sizeof (ehdr))
+	    != sizeof (ehdr))
+	  break;
+
+	if (ehdr.e_ident[EI_MAG0] != ELFMAG0
+	    || ehdr.e_ident[EI_MAG1] != ELFMAG1
+	    || ehdr.e_ident[EI_MAG2] != ELFMAG2
+	    || ehdr.e_ident[EI_MAG3] != ELFMAG3
+	    || ehdr.e_ident[EI_VERSION] != EV_CURRENT
+	    || ehdr.e_version != EV_CURRENT)
+	  break;
+
+	if (ehdr.e_ident[EI_CLASS] != ELFCLASS64
+	    || ehdr.e_ident[EI_DATA] != ELFDATA2LSB
+	    || ehdr.e_machine != grub_cpu_to_le16_compile_time (EM_IA_64))
+	  break;
+
+	ret = 1;
+
+	break;
+      }
+
+    case IS_SPARC64_LINUX:
+      {
+	Elf64_Ehdr ehdr;
+
+	if (grub_file_read (file, &ehdr, sizeof (ehdr))
+	    != sizeof (ehdr))
+	  break;
+
+	if (ehdr.e_ident[EI_MAG0] != ELFMAG0
+	    || ehdr.e_ident[EI_MAG1] != ELFMAG1
+	    || ehdr.e_ident[EI_MAG2] != ELFMAG2
+	    || ehdr.e_ident[EI_MAG3] != ELFMAG3
+	    || ehdr.e_ident[EI_VERSION] != EV_CURRENT
+	    || ehdr.e_version != EV_CURRENT)
+	  break;
+
+	if (ehdr.e_ident[EI_CLASS] != ELFCLASS64
+	    || ehdr.e_ident[EI_DATA] != ELFDATA2MSB)
+	  break;
+
+	if (ehdr.e_machine != grub_cpu_to_le16_compile_time (EM_SPARCV9)
+	    || ehdr.e_type != grub_cpu_to_be16_compile_time (ET_EXEC))
+	  break;
+
+	ret = 1;
+
+	break;
+      }
+
+    case IS_POWERPC_LINUX:
+      {
+	Elf32_Ehdr ehdr;
+
+	if (grub_file_read (file, &ehdr, sizeof (ehdr))
+	    != sizeof (ehdr))
+	  break;
+
+	if (ehdr.e_ident[EI_MAG0] != ELFMAG0
+	    || ehdr.e_ident[EI_MAG1] != ELFMAG1
+	    || ehdr.e_ident[EI_MAG2] != ELFMAG2
+	    || ehdr.e_ident[EI_MAG3] != ELFMAG3
+	    || ehdr.e_ident[EI_VERSION] != EV_CURRENT
+	    || ehdr.e_version != EV_CURRENT)
+	  break;
+
+	if (ehdr.e_ident[EI_DATA] != ELFDATA2MSB
+	    || (ehdr.e_machine != grub_cpu_to_le16_compile_time (EM_PPC)
+		&& ehdr.e_machine != grub_cpu_to_le16_compile_time (EM_PPC64)))
+	  break;
+
+	if (ehdr.e_type != grub_cpu_to_be16_compile_time (ET_EXEC)
+	    && ehdr.e_type != grub_cpu_to_be16_compile_time (ET_DYN))
+	  break;
+
+	ret = 1;
+
+	break;
+      }
+
+    case IS_MIPS_LINUX:
+      {
+	Elf32_Ehdr ehdr;
+
+	if (grub_file_read (file, &ehdr, sizeof (ehdr))
+	    != sizeof (ehdr))
+	  break;
+
+	if (ehdr.e_ident[EI_MAG0] != ELFMAG0
+	    || ehdr.e_ident[EI_MAG1] != ELFMAG1
+	    || ehdr.e_ident[EI_MAG2] != ELFMAG2
+	    || ehdr.e_ident[EI_MAG3] != ELFMAG3
+	    || ehdr.e_ident[EI_VERSION] != EV_CURRENT
+	    || ehdr.e_version != EV_CURRENT)
+	  break;
+
+	if (ehdr.e_ident[EI_DATA] != ELFDATA2MSB
+	    || ehdr.e_machine != grub_cpu_to_be16_compile_time (EM_MIPS)
+	    || ehdr.e_type != grub_cpu_to_be16_compile_time (ET_EXEC))
+	  break;
+
+	ret = 1;
+
+	break;
+      }
+    case IS_MIPSEL_LINUX:
+      {
+	Elf32_Ehdr ehdr;
+
+	if (grub_file_read (file, &ehdr, sizeof (ehdr))
+	    != sizeof (ehdr))
+	  break;
+
+	if (ehdr.e_ident[EI_MAG0] != ELFMAG0
+	    || ehdr.e_ident[EI_MAG1] != ELFMAG1
+	    || ehdr.e_ident[EI_MAG2] != ELFMAG2
+	    || ehdr.e_ident[EI_MAG3] != ELFMAG3
+	    || ehdr.e_ident[EI_VERSION] != EV_CURRENT
+	    || ehdr.e_version != EV_CURRENT)
+	  break;
+
+	if (ehdr.e_machine != grub_cpu_to_le16_compile_time (EM_MIPS)
+	    || ehdr.e_type != grub_cpu_to_le16_compile_time (ET_EXEC))
+	  break;
+	
+	ret = 1;
+
+	break;
+      }
+    case IS_ARM_LINUX:
+      {
+	grub_uint32_t sig;
+	if (grub_file_seek (file, 0x24) == (grub_size_t) -1)
+	  break;
+	if (grub_file_read (file, &sig, 4) != 4)
+	  break;
+	if (sig != grub_cpu_to_le32_compile_time (0x016f2818))
 	  break;
 	ret = 1;
 	break;
